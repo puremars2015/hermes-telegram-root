@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+config.yaml
+auth.json
+*.log
+__pycache__/
+*.py[cod]
+.venv/
+state/

@@ -1,0 +1,6 @@
+name: telegram-root
+version: "1.0.0"
+description: 單次 Telegram 私訊 sudo 授權，密碼攔截後刪除，不進模型或持久儲存。
+author: local
+provides_tools:
+  - telegram_root
