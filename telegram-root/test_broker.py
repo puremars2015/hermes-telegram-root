@@ -75,6 +75,27 @@ class Tests(unittest.IsolatedAsyncioTestCase):
         await self.handle(self.update())
         self.assertEqual(len(self.deleted), 1)
 
+    async def test_authorization_accepts_just_before_one_hour(self):
+        self.assertEqual(self.b.AUTH_TTL, 3600)
+        with patch.object(self.b.time, 'monotonic', return_value=1000):
+            pending = self.b.Pending('id -u', 'test')
+        self.assertEqual(pending.deadline, 4600)
+        pending.prompt_id = 10
+        self.b._active = pending
+        with patch.object(self.b.time, 'monotonic', return_value=4599), patch.object(self.b.threading, 'Thread') as thread:
+            await self.handle(self.update())
+            thread.assert_called_once()
+            thread.return_value.start.assert_called_once()
+        self.assertTrue(pending.accepted.is_set())
+
+    async def test_authorization_rejects_at_one_hour_boundary(self):
+        self.pending.deadline = 4600
+        with patch.object(self.b.time, 'monotonic', return_value=4600), patch.object(self.b.threading, 'Thread') as thread:
+            await self.handle(self.update())
+            thread.assert_not_called()
+        self.assertFalse(self.pending.accepted.is_set())
+        self.assertEqual(len(self.deleted), 1)
+
     async def test_cancel(self):
         with patch.object(self.b, 'execute') as execute:
             await self.handle(self.update('取消'))

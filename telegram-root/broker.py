@@ -20,7 +20,7 @@ def configured_owner():
 
 
 OWNER = configured_owner()
-AUTH_TTL = 120
+AUTH_TTL = 3600
 EXEC_TIMEOUT = 1800
 PROMPT_PREFIX = '⚠️ 單次完整 root 操作授權'
 _lock = threading.Lock()
@@ -108,7 +108,7 @@ async def prompt(pending):
         text=(PROMPT_PREFIX + '\n理由：' + pending.reason +
               '\n\n即將執行的完整指令：\n' + pending.command +
               '\n\nBot 聊天不是端到端加密。接受風險才回覆這則訊息，輸入執行 Hermes 的主機帳號 sudo 密碼。'
-              '\n不要加上指令或引號；回覆「取消」拒絕。120 秒內有效，密碼訊息刪除失敗不執行。'),
+              '\n不要加上指令或引號；回覆「取消」拒絕。最多 1 小時內有效，密碼訊息刪除失敗不執行。'),
         reply_markup=ForceReply(selective=True, input_field_placeholder='sudo 密碼／取消'),
         protect_content=True,
     )
@@ -146,7 +146,7 @@ def request(params, **kwargs):
         except Exception:
             future.cancel()
             return json.dumps({'ok': False, 'status': 'prompt_failed'})
-        if not pending.accepted.wait(AUTH_TTL):
+        if not pending.accepted.wait(max(0, pending.deadline - time.monotonic())):
             with _lock:
                 pending.claimed = True
             finish(pending, {'ok': False, 'status': 'authorization_expired'})
